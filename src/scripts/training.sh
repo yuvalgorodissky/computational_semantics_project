@@ -1,7 +1,7 @@
 # Declare associative arrays for model architectures and paths
 declare -A models
 models["bert-large-uncased"]="encoder"
-models["flan-t5-base"]="encoder_decoder"
+#models["flan-t5-base"]="encoder_decoder"
 
 declare -A model_paths
 model_paths["bert-large-uncased"]="google-bert/bert-large-uncased"

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the Python script location
-PYTHON_SCRIPT="/sise/eliorsu-group/yuvalgor/courses/computational_semantics_project/src/encoder.py"
+PYTHON_SCRIPT="/sise/eliorsu-group/yuvalgor/courses/computational_semantics_project/src/encoder_decoder.py"
 
 PREDICTION_FILES=(
     "ACE-whQA/ACE-whQA-has-answer.json"
@@ -16,14 +16,18 @@ OUTPUT_DIR_BASE="/sise/eliorsu-group/yuvalgor/courses/computational_semantics_pr
 PREDICTION_BASE="/sise/eliorsu-group/yuvalgor/courses/computational_semantics_project/datasets"
 # Different configurations for model names or paths
 MODEL_PATHS=(
-    "bert-large-uncased/squad2"
+    "flan-t5-base/squad2"
+    "flan-t5-base/squad_antonyms_ppl"
+    "flan-t5-base/squad_crqda"
+    "flan-t5-base/squad_entities_one"
+    "flan-t5-base/squad_unansq"
 )
 
 # Loop over different models and prediction files
 for MODEL_PATH in "${MODEL_PATHS[@]}"; do
 
     for PREDICTION_FILE in "${PREDICTION_FILES[@]}"; do
-        echo $PREDICTION_FILE
+
         OUTPUT_DIR="${OUTPUT_DIR_BASE}/${MODEL_PATH}/$(basename ${PREDICTION_FILE})"
         MODEL_PATH_1="${OUTPUT_DIR_BASE}/${MODEL_PATH}"
         # Check if output directory exists, if not, create it
@@ -43,5 +47,4 @@ for MODEL_PATH in "${MODEL_PATHS[@]}"; do
         echo "Run completed for model: $MODEL_PATH with predictions file $(basename ${PREDICTION_FILE})"
     done
 done
-
 echo "All model runs completed."

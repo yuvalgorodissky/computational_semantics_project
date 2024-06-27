@@ -8,9 +8,9 @@ from evaluating import compute_metrics
 from tqdm.auto import tqdm
 from  data_processing import load_data
 from utils import set_seed
+from torch.nn.utils import clip_grad_norm_
 
-
-def train(model, tokenizer, train_dataloader, device, optimizer, scheduler):
+def train(model, tokenizer, train_dataloader, device, optimizer, scheduler,max_grad_norm=1.0):
     model.train()
     total_loss = 0
     progress_bar = tqdm(train_dataloader, desc="Training", leave=False)
@@ -47,6 +47,8 @@ def train(model, tokenizer, train_dataloader, device, optimizer, scheduler):
         # Backward pass to calculate gradients
         loss.backward()
 
+        # Clip gradients to prevent explosion
+        clip_grad_norm_(model.parameters(), max_grad_norm)
         # Update model parameters
         optimizer.step()
         scheduler.step()
