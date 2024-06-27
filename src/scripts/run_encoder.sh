@@ -28,7 +28,8 @@ for MODEL_PATH in "${MODEL_PATHS[@]}"; do
 
     for PREDICTION_FILE in "${PREDICTION_FILES[@]}"; do
 
-        OUTPUT_DIR="${OUTPUT_DIR_BASE}/${MODEL_PATH}/$(basename ${PREDICTION_FILE})"
+        BASE_NAME="$(basename "${PREDICTION_FILE}" .json)"
+        OUTPUT_DIR="${OUTPUT_DIR_BASE}/${MODEL_PATH}/${BASE_NAME}"
         MODEL_PATH_1="${OUTPUT_DIR_BASE}/${MODEL_PATH}"
         # Check if output directory exists, if not, create it
         if [ ! -d "$OUTPUT_DIR" ]; then
