@@ -9,7 +9,7 @@
 #SBATCH --partition main			### specify partition name where to run a job. main: all nodes; gtx1080: 1080 gpu card nodes; rtx2080: 2080 nodes; teslap100: p100 nodes; titanrtx: titan nodes
 #SBATCH --time 7-00:00:00			### limit the time of job running. Make sure it is not greater than the partition time limit!! Format: D-H:MM:SS
 #SBATCH --job-name models_training			### name of the job
-#SBATCH --output job-%J-$x.out			### output log for running job - %J for job number
+#SBATCH --output /sise/eliorsu-group/yuvalgor/courses/computational_semantics_project/decoder_job-%J-$x.out			### output log for running job - %J for job number
 #SBATCH --gpus=rtx_6000:1			### number of GPUs, allocating more than 1 requires IT team's permission. Example to request 3090 gpu: #SBATCH --gpus=rtx_3090:1
 
 # Note: the following 4 lines are commented out
@@ -47,13 +47,15 @@ mkdir -p "$output_path"
 
 # Execute the Python script with the correct continuation of lines
 python "$base_path/src/$python_file_path/$model_arch.py" \
-  --epochs 10 \
+  --epochs 2 \
   --lr 3e-5 \
-  --batch_size_train 16 \
-  --batch_size_dev 16 \
+  --batch_size_train 4\
+  --batch_size_dev 4 \
   --path_dev_set "/sise/eliorsu-group/yuvalgor/courses/computational_semantics_project/datasets/squad_data/valid.json" \
   --path_train_set "/sise/eliorsu-group/yuvalgor/courses/computational_semantics_project/datasets/squad_data/$dataset.json" \
   --do_train \
   --do_eval \
   --output_dir "$output_path" \
-  --model_name_or_path "$model_path"
+  --model_name_or_path "$model_path" \
+  --overwrite_output_dir \
+  --overwrite_cache

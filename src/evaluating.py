@@ -46,6 +46,8 @@ def compute_metrics(predictions, references):
     f1_no_ans = exact_match_no_ans = total_no_ans = 0
 
     for prediction, ground_truth in tqdm(zip(predictions, references), total=len(predictions), desc="Evaluating"):
+        if ground_truth == "unanswerable":
+            ground_truth = ""
         if ground_truth.strip():  # This question has an answer
             total_with_ans += 1
             exact_match_with_ans += exact_match_score(prediction, ground_truth)

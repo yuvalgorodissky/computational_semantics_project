@@ -21,31 +21,30 @@ from utils import set_seed, clean_output
 from trl import SFTTrainer, DataCollatorForCompletionOnlyLM
 
 
-def formatting_prompts_func(data_point, for_test=False):
-    if not for_test:
-        answer = data_point["answer"] if data_point["answer"] else "unanswerable"
-
-        data_point["text"] = f"""Give an answer to the question given the context:  
-    ### Context: {data_point["context"]}
-    ### Question: {data_point["question"]}
-    ### Answer: {answer}"""
+def formatting_prompts_func(data_point,for_training=False):
+    answer = data_point["answer"] if data_point["answer"] else "unanswerable"
+    data_point["answer"] = answer
+    if not for_training:
+        data_point["text"] = f"""### Context: {data_point["context"]}
+### Question: {data_point["question"]}
+### Answer: {answer}\n """
+        data_point["answer"] = answer
     else:
-        data_point["text"] = f"""Give an answer to the question given the context:  
-          ### Context: {data_point["context"]}
-          ### Question: {data_point["question"]}
-          ### Answer:"""
+        data_point["text"] = f"""### Context: {data_point["context"]}
+### Question: {data_point["question"]}
+"""
 
     return data_point
 
 
 class SquadDataset(Dataset):
-    def __init__(self, entries, tokenizer, transform=None, for_test=False):
+    def __init__(self, entries, tokenizer, transform=None,for_training=False):
         super(SquadDataset, self).__init__()
         self.tokenizer = tokenizer
         self.transform = transform
         entries_after_transform = []
         for entry in entries:
-            entries_after_transform.append(self.transform(entry, for_test))
+            entries_after_transform.append(self.transform(entry,for_training=for_training))
         self.entries = entries_after_transform
 
     def __len__(self):
@@ -53,41 +52,47 @@ class SquadDataset(Dataset):
 
     def __getitem__(self, idx):
         entry = self.entries[idx]["text"]
-
         tokenizer_text = self.tokenizer(entry, return_tensors="pt", padding="max_length", truncation=True,
-                                        max_length=1024)
+                                        max_length=512)
 
         for key in tokenizer_text:
             tokenizer_text[key] = tokenizer_text[key].squeeze(0)  # Remove batch dimension if added automatically
+        # with self.tokenizer.as_target_tokenizer():
+        #     target_text = self.tokenizer(self.entries[idx]["answer"], return_tensors="pt", padding="max_length",
+        #                                  truncation=True, max_length=512)
+        #     tokenizer_text["labels"] = target_text["input_ids"].squeeze(0)
+        #     tokenizer_text["labels"][tokenizer_text["labels"] == self.tokenizer.pad_token_id] = -100
+
         return tokenizer_text
 
 
-def evaluate(model, tokenizer, dataset,device):
+def evaluate(model, tokenizer, dataset, device):
     model.eval()
     predictions_dict = {}
     predictions = []
+    references = []
     with torch.no_grad():
-        for i ,data in enumerate(tqdm(dataset, desc="Evaluating")):
+        for i, data in enumerate(tqdm(dataset, desc="Evaluating")):
             input_ids = data["input_ids"].to(device).unsqueeze(0)
             attention_mask = data["attention_mask"].to(device).unsqueeze(0)
 
             outputs = model.generate(input_ids=input_ids, attention_mask=attention_mask,
-                                     early_stopping=True, max_new_tokens=20)
+                                     early_stopping=True, max_new_tokens=10)
 
             pred_text = tokenizer.decode(outputs[0], skip_special_tokens=True, clean_up_tokenization_spaces=True)
             # Decode the input tokens
-            #TODO: check if this is the correct way to decode the input extarct the answer from the genarated text 
-            # Subtract the input part from the full output to get only the generated part
-            generated_part_start = pred_text.find(decoded_input) + len(decoded_input)
+            input_text = dataset.entries[i]['text']
+            generated_part_start = pred_text.find(input_text) + len(input_text)
             generated_part = pred_text[generated_part_start:].strip()
             clean_prediction = clean_output(generated_part)
             predictions.append(clean_prediction)
-            predictions_dict[data['qid']] = generated_part
-    with open(path, "w") as f:
-        json.dump(predictions_dict, f)
+            predictions_dict[dataset.entries[i]['id']] = clean_prediction
+            references.append(dataset.entries[i]['answer'])
+
     metrics = compute_metrics(predictions, references)
     print(f"Evaluated metrics: {metrics}")
-    return metrics
+
+    return metrics, predictions_dict
 
 
 def setup_training_arguments(args):
@@ -96,18 +101,16 @@ def setup_training_arguments(args):
         num_train_epochs=args.epochs,
         per_device_train_batch_size=args.batch_size_train,
         gradient_accumulation_steps=1,
-        optim="paged_adamw_32bit",
+        optim="adamw_8bit",
         save_steps=0,
         logging_steps=5,
         learning_rate=args.lr,
         fp16=False,
         bf16=False,
-        lr_scheduler_type="cosine",
+        lr_scheduler_type="linear",
         group_by_length=True,
-        max_grad_norm=0.3,
+        max_grad_norm=1,
         max_steps=-1,
-        weight_decay=0.001,
-        warmup_ratio=0.03,
 
     )
     return training_args
@@ -141,44 +144,49 @@ def parser():
     return args
 
 
-class DataCollatorForCompletionOnlyLM(DataCollatorForLanguageModeling):
-    def __init__(self, tokenizer, mlm=False, mlm_probability=0.15):
-        super().__init__(tokenizer=tokenizer, mlm=mlm, mlm_probability=mlm_probability)
-
-    def __call__(self, examples):
-        # Collate examples using the parent class method
-        batch = super().__call__(examples)
-
-        # Tokenize "Answer:" to find where the answer starts
-        answer_start_tokens = self.tokenizer(" Answer:", add_special_tokens=False)['input_ids']
-
-        # Adjust labels to set non-answer tokens to -100
-        for i, input_ids in enumerate(batch['input_ids']):
-            input_ids_list = input_ids.tolist()  # Convert tensor to list
-
-            # Try to find the sequence of answer_start_tokens in input_ids_list
-            start_answer = None
-            for index in range(len(input_ids_list) - len(answer_start_tokens) + 1):
-                if input_ids_list[index:index + len(answer_start_tokens)] == answer_start_tokens:
-                    start_answer = index + len(answer_start_tokens)
-                    break
-
-            if start_answer:
-                # Assume answer extends until the next special token (e.g., pad, eos) or the end of the list
-                end_answer = next((idx for idx, token in enumerate(input_ids_list[start_answer:], start=start_answer)
-                                   if token in [self.tokenizer.pad_token_id, self.tokenizer.eos_token_id]),
-                                  len(input_ids_list))
-
-                # Set non-answer labels to -100
-                labels = batch['labels'][i].tolist()  # Convert tensor to list
-                labels[:start_answer] = [-100] * start_answer  # Set tokens before answer to -100
-                labels[end_answer:] = [-100] * (len(labels) - end_answer)  # Set tokens after answer to -100
-                batch['labels'][i] = torch.tensor(labels)  # Convert back to tensor
-            else:
-                # If no answer start is found, set all labels to -100
-                batch['labels'][i] = torch.full_like(batch['labels'][i], -100)
-
-        return batch
+# class DataCollatorForCompletionOnlyLM(DataCollatorForLanguageModeling):
+#     def __init__(self, tokenizer, mlm=False, mlm_probability=0.15):
+#         super().__init__(tokenizer=tokenizer, mlm=mlm, mlm_probability=mlm_probability)
+#
+#     def __call__(self, examples):
+#         # Collate examples using the parent class method
+#         batch = super().__call__(examples)
+#
+#         # Tokenize "Answer:" to find where the answer starts
+#         answer_start_tokens = self.tokenizer("### Answer:", add_special_tokens=False)['input_ids']
+#
+#         # Adjust labels and input_ids
+#         for i, input_ids in enumerate(batch['input_ids']):
+#             input_ids_list = input_ids.tolist()  # Convert tensor to list
+#
+#             # Try to find the sequence of answer_start_tokens in input_ids_list
+#             start_answer = None
+#             for index in range(len(input_ids_list) - len(answer_start_tokens) + 1):
+#                 if input_ids_list[index:index + len(answer_start_tokens)] == answer_start_tokens:
+#                     start_answer = index
+#                     break
+#
+#             if start_answer:
+#                 # Find end of the answer by looking for the next special token (e.g., pad, eos)
+#                 end_answer = next((idx for idx, token in enumerate(input_ids_list[start_answer:], start=start_answer)
+#                                    if token in [self.tokenizer.pad_token_id, self.tokenizer.eos_token_id]),
+#                                   len(input_ids_list))
+#
+#                 # Set non-answer labels to -100
+#                 labels = batch['labels'][i].tolist()  # Convert tensor to list
+#                 labels[:start_answer] = [-100] * (start_answer)  # Set all tokens before answer start to -100
+#                 labels[end_answer:] = [-100] * (len(labels) - end_answer)  # Set tokens after the answer to -100
+#                 batch['labels'][i] = torch.tensor(labels)  # Convert back to tensor
+#
+#                 # Replace the segment from start of answer to end_answer with pad tokens
+#                 pad_token_id = self.tokenizer.pad_token_id  # Get the padding token ID from the tokenizer
+#                 input_ids_list[start_answer:end_answer] = [pad_token_id] * (end_answer - start_answer)
+#                 batch['input_ids'][i] = torch.tensor(input_ids_list)
+#             else:
+#                 # If no answer start is found, set all labels to -100
+#                 batch['labels'][i] = torch.full_like(batch['labels'][i], -100)
+#
+#         return batch
 
 
 def prepare_bnb_config():
@@ -203,49 +211,50 @@ def main():
     bnb_config = prepare_bnb_config()
 
     # Load model with the configuration that handles device placement
+    # model = AutoModelForCausalLM.from_pretrained(
+    #     args.model_name_or_path,
+    #     quantization_config=bnb_config,
+    #     device_map="auto",  # Automatically handle device placement
+    #     torch_dtype=torch.bfloat16,
+    #     token="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",
+    # )
     model = AutoModelForCausalLM.from_pretrained(
         args.model_name_or_path,
-        quantization_config=bnb_config,
-        device_map="auto",  # Automatically handle device placement
-        torch_dtype=torch.bfloat16,
-        token="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",
+        device_map="auto",  # Automatically places the model on the correct device
+        torch_dtype=torch.bfloat16,  # Ensure this matches your original configuration
     )
     tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
-    tokenizer.pad_token = tokenizer.eos_token
-    tokenizer.padding_side = "right"
+    # tokenizer.pad_token = tokenizer.eos_token
+    # tokenizer.padding_side = "right"
 
     # Further configuration (e.g., LoRA) if needed
-    peft_config = LoraConfig(
-        lora_alpha=args.lora_alpha,
-        lora_dropout=args.lora_dropout,
-        target_modules=["q_proj", "up_proj", "o_proj", "k_proj", "down_proj", "gate_proj", "v_proj"],
-        r=args.lora_r,
-        bias="none",
-        task_type="CAUSAL_LM"
-    )
-    model = get_peft_model(model, peft_config)
+    # peft_config = LoraConfig(
+    #     lora_alpha=args.lora_alpha,
+    #     lora_dropout=args.lora_dropout,
+    #     target_modules=["q_proj", "up_proj", "o_proj", "k_proj", "down_proj", "gate_proj", "v_proj"],
+    #     r=args.lora_r,
+    #     bias="none",
+    #     task_type="CAUSAL_LM"
+    # )
+    # model = get_peft_model(model, peft_config)
 
     model.to(device)
     if args.do_train:
         model.print_trainable_parameters()
         print(f"Loading training data from dir -- {args.path_train_set} -- ...")
-        train_data = load_data(args.path_train_set)[:10]
-        train_dataset = SquadDataset(train_data, tokenizer, transform=formatting_prompts_func)
-        # train_dataset = train_dataset.map(formatting_prompts_func)
+        train_data = load_data(args.path_train_set)
+        train_dataset = SquadDataset(train_data, tokenizer, transform=formatting_prompts_func,for_training=False)
         training_args = setup_training_arguments(args)
 
-        collator = DataCollatorForCompletionOnlyLM(tokenizer=tokenizer)
         trainer = SFTTrainer(
             model=model,
             tokenizer=tokenizer,
             train_dataset=train_dataset,
             dataset_text_field="text",
             peft_config=peft_config,
-            max_seq_length=1024,
+            max_seq_length=512,
             args=training_args,
             packing=False,
-            data_collator=collator,
-            # optimizers=(AdamW(get_lora_params(model), lr=args.learning_rate), None)  # Only LoRA params
         )
         trainer.train()
         print("Training complete. Saving model...")
@@ -257,17 +266,13 @@ def main():
     if args.do_eval:
         print(f"Loading evaluation data from {args.path_dev_set}...")
         dev_data = load_data(args.path_dev_set)
-        references = [entry["answer"] for entry in dev_data]
-        dev_dataset = SquadDataset(dev_data, tokenizer, transform=formatting_prompts_func, for_test=True)
-        metrics, all_predictions = evaluate(model, tokenizer, dev_dataset,device)
-        print("Evaluation complete.")
-
-
-        # with open(f"{args.output_dir}/metrics.json", 'w') as f:
-        #     json.dump(metrics, f)
-        # with open(f"{args.output_dir}/all_predictions.json", 'w') as f:
-        #     json.dump(all_predictions, f, indent=4)
-        # print("Metrics and predictions saved.")
+        dev_dataset = SquadDataset(dev_data, tokenizer, transform=formatting_prompts_func,for_training=True)
+        metrics, all_predictions = evaluate(model, tokenizer, dev_dataset, device)
+        with open(f"{args.output_dir}/metrics.json", 'w') as f:
+            json.dump(metrics, f)
+        with open(f"{args.output_dir}/all_predictions.json", 'w') as f:
+            json.dump(all_predictions, f, indent=4)
+        print("Metrics and predictions saved.")
 
         print("Evaluation complete.")
 
