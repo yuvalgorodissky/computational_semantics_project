@@ -1,5 +1,4 @@
 import os
-
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -34,11 +33,11 @@ csv_files = [
     ('metrics_f1_has_ans.csv', "F1 Score (Has Answer)"),
     ('metrics_f1_no_ans.csv', "F1 Score (No Answer)")
 ]
-model_name = "flan-t5-base"
+model_name = "Meta-Llama-3-8B-Instruct"
 
 
 # Path to the directory containing CSV files
-directory_path = '/Users/noamazulay/Desktop/studies/fourth year/semester b/computational_semantics_project/eval/'
+directory_path = '/sise/eliorsu-group/yuvalgor/courses/computational_semantics_project/eval/'
 
 # Read each CSV file, process it, and generate the heatmap
 for file_name, title in csv_files:
