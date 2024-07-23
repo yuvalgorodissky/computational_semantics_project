@@ -40,7 +40,7 @@ csv_files = [
     ('metrics_f1_has_ans.csv', "F1_Score_(Has_Answer)"),
     ('metrics_f1_no_ans.csv', "F1_Score_(No_Answer)")
 ]
-model_name = "flan-t5-base"
+model_name = "Meta-Llama-3-8B-Instruct"
 
 # Path to the directory containing CSV files
 directory_path = '/sise/eliorsu-group/yuvalgor/courses/computational_semantics_project/eval/'
@@ -109,5 +109,5 @@ def transform_df_columns_row2(df):
 for file_name, title in csv_files:
     file_path = f"{directory_path}/{model_name}/tables/{file_name}"
     data = read_and_process_csv(file_path)
-    data = transform_df_columns_row2(data)
-    generate_heatmap(data, f"{title}\n{model_name}")
+    data = transform_df_columns_row(data)
+    generate_heatmap(data, f"{title}")
