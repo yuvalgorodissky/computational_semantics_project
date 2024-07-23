@@ -33,14 +33,14 @@ def generate_heatmap(data, title):
 
 # List of CSV files and their titles
 csv_files = [
-    ('metrics_average_exact_match.csv', "Average Exact Match"),
-    ('metrics_average_f1.csv', "Average F1"),
-    ('metrics_exact_match_has_ans.csv', "Exact Match (Has Answer)"),
-    ('metrics_exact_match_no_ans.csv', "Exact Match (No Answer)"),
-    ('metrics_f1_has_ans.csv', "F1 Score (Has Answer)"),
-    ('metrics_f1_no_ans.csv', "F1 Score (No Answer)")
+    ('metrics_average_exact_match.csv', "Average_Exact_Match"),
+    ('metrics_average_f1.csv', "Average_F1"),
+    ('metrics_exact_match_has_ans.csv', "Exact_Match_(Has_Answer)"),
+    ('metrics_exact_match_no_ans.csv', "Exact_Match_(No_Answer)"),
+    ('metrics_f1_has_ans.csv', "F1_Score_(Has_Answer)"),
+    ('metrics_f1_no_ans.csv', "F1_Score_(No_Answer)")
 ]
-model_name = "bert-large-uncased"
+model_name = "flan-t5-base"
 
 # Path to the directory containing CSV files
 directory_path = '/sise/eliorsu-group/yuvalgor/courses/computational_semantics_project/eval/'
@@ -74,9 +74,40 @@ def transform_df_columns_row(df):
     return df
 
 
+
+def transform_df_columns_row2(df):
+    # Dictionary to map old column names to new names
+    cols_names = {
+        "squad2-devset": "SQuAD2.0 (dev)",
+        ' tydiqa_devset ': "TyDi QA (English)",
+        "ACE-whQA-IDK-competitive": "ACE WhQA IDK Competitive",
+        "ACE-whQA-IDK-non-competitive": "ACE WhQA IDK Non Competitive",
+        "ACE-whQA-has-answer": "ACE WhQA Has Answer",
+    }
+    # Dictionary to map old row indices to new indices
+    rows_names = {
+        "squad2": "SQuAD2.0",
+        "squad_crqda": "SQuAD CRQDA",
+        "squad_unansq": "SQuAD UNANSQ",
+        "squad_antonyms_ppl": "SQuAD Antonym",
+        "squad_entities_one": "SQuAD Entity"
+    }
+
+    # Rename columns and rows
+    df = df.rename(columns=cols_names, index=rows_names)
+
+    # Reorder columns and rows to match the order specified in the dictionaries
+    df = df[cols_names.values()]  # Reorder columns
+    df = df.loc[rows_names.values()]  # Reorder rows
+
+    return df
+
+
+
+
 # Read each CSV file, process it, and generate the heatmap
 for file_name, title in csv_files:
     file_path = f"{directory_path}/{model_name}/tables/{file_name}"
     data = read_and_process_csv(file_path)
-    data = transform_df_columns_row(data)
+    data = transform_df_columns_row2(data)
     generate_heatmap(data, f"{title}\n{model_name}")
