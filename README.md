@@ -30,10 +30,10 @@ computational_semantics_project/
 │   ├── flan_t5/
 │   └── llama3/
 │
-├── scripts/
-│   ├── data_preparation.py
-│   ├── fine_tuning.py
-│   └── evaluation.py
+├── src/
+│   ├── encoder.py
+│   ├── decoder.py
+│   └── encoder-decoder.py
 │
 ├── eval/
 │   ├── Meta-Llama-3-8B-Instruct/
