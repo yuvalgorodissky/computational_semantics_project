@@ -63,7 +63,7 @@ The experiments include:
 3. **Evaluation**: Assessing model performance on both in-domain and out-of-domain tasks.
 
 ## Results
-Our experiments indicate that the Entity method significantly improves performance in in-domain tasks for the BERT model, while the UNANSQ method excels in out-of-domain scenarios. Detailed results and analysis can be found in the `results` directory.
+Our experiments indicate that the Entity method significantly improves performance in in-domain tasks for the BERT model, while the UNANSQ method excels in out-of-domain scenarios. Detailed results and analysis can be found in the `Eval` directory.
 
 ## Contributing
 Contributions are welcome! Please read the [contributing guidelines](CONTRIBUTING.md) for more information on how to get involved.
