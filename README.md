@@ -87,5 +87,3 @@ For any inquiries, please contact the authors:
 This project is part of the Computational Semantics course at Ben-Gurion University of the Negev, Israel, Department of Software and Information Systems Engineering.
 
 ---
-
-You can access the project repository [here](https://github.com/yuvalgorodissky/computational_semantics_project/tree/main).
