@@ -37,15 +37,15 @@ computational_semantics_project/
 │   └── evaluation.py
 │
 ├── eval/
-│   ├── Meta-Llama-3-8B-Instruct
-│   │   ├── heatmaps
-│   │   └── Tables
-│   ├── bert-large-uncased
-│   │   ├── heatmaps
-│   │   └── Tables
-│   └── flan-t5-base
-│       ├── heatmaps
-│       └── Tables
+│   ├── Meta-Llama-3-8B-Instruct/
+│   │   ├── heatmaps/
+│   │   └── Tables/
+│   ├── bert-large-uncased/
+│   │   ├── heatmaps/
+│   │   └── Tables/
+│   └── flan-t5-base/
+│       ├── heatmaps/
+│       └── Tables/
 │
 ├── README.md
 └── requirements.txt
