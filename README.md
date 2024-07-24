@@ -11,8 +11,7 @@ This repository contains the code and resources for the project "Computational S
 5. [Experimental Setup](#experimental-setup)
 6. [Results](#results)
 7. [Contributing](#contributing)
-8. [License](#license)
-9. [Contact](#contact)
+8. [Contact](#contact)
 
 ## Introduction
 This project explores Extractive Question Answering (EQA) with a focus on handling unanswerable questions. We evaluate methods to generate unanswerable questions and assess their impact on various models, including BERT, FLAN-T5, and Llama 3, using datasets such as SQuAD 2.0, TyDi QA, and ACE-whQA.
@@ -85,5 +84,7 @@ For any inquiries, please contact the authors:
 ---
 
 This project is part of the Computational Semantics course at Ben-Gurion University of the Negev, Israel, Department of Software and Information Systems Engineering.
+
+We have documented our findings and methodologies in a detailed paper. You can find the paper [here](Computational_Semantics_Final_Report.pdf).
 
 ---
