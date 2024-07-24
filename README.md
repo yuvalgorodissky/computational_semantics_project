@@ -68,9 +68,6 @@ Our experiments indicate that the Entity method significantly improves performan
 ## Contributing
 Contributions are welcome! Please read the [contributing guidelines](CONTRIBUTING.md) for more information on how to get involved.
 
-## License
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
 ## Contact
 For any inquiries, please contact the authors:
 - Noam Azulay: noamaz@post.bgu.ac.il
