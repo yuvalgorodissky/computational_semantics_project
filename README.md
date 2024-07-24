@@ -36,9 +36,16 @@ computational_semantics_project/
 │   ├── fine_tuning.py
 │   └── evaluation.py
 │
-├── results/
-│   ├── in_domain/
-│   └── out_of_domain/
+├── eval/
+│   ├── Meta-Llama-3-8B-Instruct
+│   │   ├── heatmaps
+│   │   └── Tables
+│   ├── bert-large-uncased
+│   │   ├── heatmaps
+│   │   └── Tables
+│   └── flan-t5-base
+│       ├── heatmaps
+│       └── Tables
 │
 ├── README.md
 └── requirements.txt
