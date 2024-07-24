@@ -10,8 +10,7 @@ This repository contains the code and resources for the project "Computational S
 4. [Models](#models)
 5. [Experimental Setup](#experimental-setup)
 6. [Results](#results)
-7. [Contributing](#contributing)
-8. [Contact](#contact)
+7. [Contact](#contact)
 
 ## Introduction
 This project explores Extractive Question Answering (EQA) with a focus on handling unanswerable questions. We evaluate methods to generate unanswerable questions and assess their impact on various models, including BERT, FLAN-T5, and Llama 3, using datasets such as SQuAD 2.0, TyDi QA, and ACE-whQA.
@@ -69,10 +68,7 @@ The experiments include:
 3. **Evaluation**: Assessing model performance on both in-domain and out-of-domain tasks.
 
 ## Results
-Our experiments indicate that the Entity method significantly improves performance in in-domain tasks for the BERT model, while the UNANSQ method excels in out-of-domain scenarios. Detailed results and analysis can be found in the `Eval` directory.
-
-## Contributing
-Contributions are welcome! Please read the [contributing guidelines](CONTRIBUTING.md) for more information on how to get involved.
+Our experiments indicate that the Entity method significantly improves performance in in-domain tasks for the BERT model, while the UNANSQ method excels in out-of-domain scenarios. Detailed results and analysis can be found in the `eval` directory.
 
 ## Contact
 For any inquiries, please contact the authors:
